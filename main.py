@@ -93,6 +93,7 @@ class powerCostApi_class:
         self.display = displayClass
         self.ntp = ntp
 
+
     def getSpotPrice(self):
         # lcd.print('getSpotPrice\n')
         res = self.oldPrices # Reuse old in case of network error
@@ -171,16 +172,19 @@ class powerCostApi_class:
 
         return res
 
-    def getCurrentPrices(self):
-        now = machine.RTC().datetime() # datetime.now()
 
+    def lookUpCurrentPrices(self):
+
+        now = utime.localtime()  # (y, m, d, h, m, s, wd, yd)
         for elem in self.priceList:
-            if elem[0] == now[4]:
-                return elem[1]
-
+            if elem[0] == now[3]:
+                self.currentImportPrice, self.currentExportPrice = elem[1]
+                return
         # if now.hour not in self.prices:
-        print("Error: getCurrentPrices, element", now[4], "not found in prices")
-        return (0, 0)
+        self.display.writeXY("Error: lookUpCurrentPrices, element (hour) "+str(now[3]), 1, 0, 0)
+
+    def getCurrentPrices(self):
+        return self.currentImportPrice, self.currentExportPrice;
 
     # Downsample and update prices
     def __call__(self):
@@ -189,9 +193,9 @@ class powerCostApi_class:
             self.call_cnt = 60*60/self.pollingTime # 1 hour
             spotPriceList = self.getSpotPrice()
             self.priceList = self.calcPrices(spotPriceList)
-            currentImportPrice, currentExportPrice = self.getCurrentPrices()
-            self.display.writeXY("{:.02f}".format(currentImportPrice/100), 1, 0, 1)
-            self.display.writeXY("{:.02f}".format(currentExportPrice/100), 0, 1, 1)
+            self.lookUpCurrentPrices()
+            self.display.writeXY("{:.02f}".format(self.currentImportPrice/100), 1, 0, 1)
+            self.display.writeXY("{:.02f}".format(self.currentExportPrice/100), 0, 1, 1)
         else:
             self.call_cnt -= 1
 
@@ -209,6 +213,8 @@ class radiusApi_class():
         self.earningsToday = 0.0
         self.pollingTime = pollingTime
         self.call_cnt = 0
+        self.old = 0, 0
+
 
     def getRadiusData(self):
         jsonUrl = url+'data.json'
@@ -216,7 +222,6 @@ class radiusApi_class():
             resp = urequests.get(jsonUrl)
             if resp.reason!=b'OK':
                 self.display.writeXY("Error getRadiusData", 1, 0, 0)
-                # lcd.print('Error getRadiusData\n')
             tmp = resp.json()
             activeImport = tmp['i']
             activeExport = tmp['e']
@@ -225,20 +230,19 @@ class radiusApi_class():
             else:
                 self.display.writeXY(str(activeImport), 1, 1, 0)
         except:
-            # self.remoteSiteApi.printlog('Error getRadiusData exception') #; #exit(1)
-            return 0, 0
+            return self.old
+        self.old = activeImport, activeExport
+        return self.old
 
-        return activeImport, activeExport
 
     # Correct from increment 
     def myCorrectEarningScale(self, x):
         return x / 1000 / 100 / (60*60/self.pollingTime)
 
-    def UpdateEarnings(self, powerImportExport):
 
+    def UpdateEarnings(self, powerImportExport):
         powerImport, powerExport = powerImportExport
         tmp = powerExport*self.exportPrice - powerImport*self.importPrice # øre/time * 1000
-        # self.earningsTotal += step
         self.earningsToday += tmp
         res = tmp/1000/100 # kr/h. W->kW, øre->kr
 
@@ -251,8 +255,6 @@ class radiusApi_class():
         forbrugDag = self.myCorrectEarningScale(-self.earningsToday)
         self.display.writeXY("{:.02f}".format(forbrugDag), forbrugDag>0, 0, 2)
 
-    def getImportExport(self):
-        return self.importExport
 
     def __call__(self, prices):
         self.importPrice, self.exportPrice = prices
@@ -261,8 +263,8 @@ class radiusApi_class():
 
         if self.call_cnt == 0: 
             self.call_cnt = 60*1/self.pollingTime # 1 min
-            now = machine.RTC().datetime() # datetime.now()
-            if now[4]==0 and now[5]==0: # hour, minute
+            now = utime.localtime()  # (y, m, d, h, m, s, wd, yd)
+            if now[3]==0 and now[4]==0: # hour, minute
                 self.earningsYesterday = self.earningsToday
                 self.earningsToday = 0
         else:
