@@ -123,7 +123,7 @@ class powerCostApi_class:
 
                     myHour = int((date_time_str.split(':')[0]).split('T')[1])
                     price = item['SpotPriceDKK']/10
-                    if (deltaDay > 0 and myHour < self.ntp.hour()) or (deltaDay==0 and myHour >= self.ntp.hour()):
+                    if (deltaDay and myHour < self.ntp.hour()) or (not deltaDay and myHour >= self.ntp.hour()):
                         res.append((myHour, price))
 
                 self.oldPrices = res
