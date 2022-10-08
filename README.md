@@ -11,7 +11,7 @@ Displays:
 
 The time is read from dk.pool.ntp.org.
 
-The power prices read from energidataservice.dk.
+The power prices are read from energidataservice.dk.
 
 The import- and export prices are based on Vindstød (Danish) charges.
 
