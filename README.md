@@ -1,4 +1,5 @@
 # Stand alone power reader based on M5Stack core2.
+The hardware used, is the [M5Stack Core2](https://www.elfadistrelec.dk/da/esp32-m5core2-udviklingsmodul-m5stack-k010/p/30181494).
 It reads data from the brilliant [AmsToMqttBridge](https://github.com/gskjold/AmsToMqttBridge) bridge made by [gskjold](https://github.com/gskjold).
 
 Displays:
