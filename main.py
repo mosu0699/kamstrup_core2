@@ -92,6 +92,7 @@ class powerCostApi_class:
         self.oldPrices = [] # list of touples (hour, price)
         self.display = displayClass
         self.ntp = ntp
+        self.lastPriceUpdate = None
 
 
     def getSpotPrice(self):
@@ -181,7 +182,7 @@ class powerCostApi_class:
                 self.currentImportPrice, self.currentExportPrice = elem[1]
                 return
         # if now.hour not in self.prices:
-        self.display.writeXY("Error: lookUpCurrentPrices, element (hour) "+str(now[3]), 1, 0, 0)
+        self.display.writeXY("Error: lookUpCurrentPrices, element (hour) "+str(now[3]), 1, 0, 1)
 
     def getCurrentPrices(self):
         return self.currentImportPrice, self.currentExportPrice;
@@ -190,12 +191,15 @@ class powerCostApi_class:
     def __call__(self):
 
         if self.call_cnt == 0:
-            self.call_cnt = 60*60/self.pollingTime # 1 hour
-            spotPriceList = self.getSpotPrice()
-            self.priceList = self.calcPrices(spotPriceList)
-            self.lookUpCurrentPrices()
-            self.display.writeXY("{:.02f}".format(self.currentImportPrice/100), 1, 0, 1)
-            self.display.writeXY("{:.02f}".format(self.currentExportPrice/100), 0, 1, 1)
+            self.call_cnt = 60/self.pollingTime # 1 min
+            now = utime.localtime()  # (y, m, d, h, m, s, wd, yd)
+            if self.lastPriceUpdate != now[3]: # hour
+                self.lastPriceUpdate = now[3]
+                spotPriceList = self.getSpotPrice()
+                self.priceList = self.calcPrices(spotPriceList)
+                self.lookUpCurrentPrices()
+                self.display.writeXY("{:.02f}".format(self.currentImportPrice/100), 0, 0, 1)
+                self.display.writeXY("{:.02f}".format(self.currentExportPrice/100), 0, 1, 1)
         else:
             self.call_cnt -= 1
 
@@ -214,6 +218,7 @@ class radiusApi_class():
         self.pollingTime = pollingTime
         self.call_cnt = 0
         self.old = 0, 0
+        self.lastEarningsUpdate = None
 
 
     def getRadiusData(self):
@@ -262,9 +267,10 @@ class radiusApi_class():
         self.UpdateEarnings(self.importExport)
 
         if self.call_cnt == 0: 
-            self.call_cnt = 60*1/self.pollingTime # 1 min
+            self.call_cnt = 60/self.pollingTime # 1 min
             now = utime.localtime()  # (y, m, d, h, m, s, wd, yd)
-            if now[3]==0 and now[4]==0: # hour, minute
+            if self.lastEarningsUpdate != now[2]: # day
+                self.lastEarningsUpdate = now[2]
                 self.earningsYesterday = self.earningsToday
                 self.earningsToday = 0
         else:
