@@ -151,7 +151,7 @@ class powerCostApi_class:
             vindstodSpotPris = spotPrice*1.25 + 0.63
 
             # https://www.tv2lorry.dk/energikrise/selskab-fordobler-stroemprisen-om-aftenen-her-er-forklaringen
-            if time >= 17 and time < 21:
+            if time >= 17 and time < 20:
                 tarifPris = 76.51*1.25 + vindstodSpotPris
             else:
                 tarifPris = 30.03*1.25 + vindstodSpotPris
