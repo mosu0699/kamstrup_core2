@@ -80,6 +80,18 @@ class display_class:
 
         self.arraydata[x][y] = data
 
+    # Print data on empty screen, and wait 5 sec
+    def printErr(self, data):
+        lcd.clear()
+        lcd.print(data, 0, 0, 0xff0000)
+        # lcd.print('exit', 0, 194, 0xfefefe)
+        utime.sleep(5)
+        # while True:
+        #     if btnA.wasPressed(): break
+        #     # lcd.print('Button A was Pressed\n')
+        #     utime.sleep(0.1)
+        self.__init__()
+
 
 # Read actual power prices and calculate import and export prices
 class powerCostApi_class:
@@ -115,7 +127,7 @@ class powerCostApi_class:
             # lcd.print(resp.text+'\n')
 
             if resp.reason!=b'OK':
-                self.display.writeXY('Error getSpotPrice',1,0,0)
+                self.display.printErr('Error getSpotPrice')
             else:
                 tmp = (resp.json())['records']
                 for item in tmp:
@@ -130,7 +142,7 @@ class powerCostApi_class:
 
                 self.oldPrices = res
         except:
-            self.display.writeXY('Error getSpotPrice exception', 1, 0, 0)
+            self.display.printErr('Error getSpotPrice exception')
 
         return res
 
@@ -182,7 +194,7 @@ class powerCostApi_class:
                 self.currentImportPrice, self.currentExportPrice = elem[1]
                 return
         # if now.hour not in self.prices:
-        self.display.writeXY("Error: lookUpCurrentPrices, element (hour) "+str(now[3]), 1, 0, 1)
+        self.display.printErr("Error: lookUpCurrentPrices, element (hour) "+str(now[3]))
 
     def getCurrentPrices(self):
         return self.currentImportPrice, self.currentExportPrice;
@@ -226,7 +238,7 @@ class radiusApi_class():
         try:
             resp = urequests.get(jsonUrl)
             if resp.reason!=b'OK':
-                self.display.writeXY("Error getRadiusData", 1, 0, 0)
+                self.display.printErr("Error getRadiusData")
             tmp = resp.json()
             activeImport = tmp['i']
             activeExport = tmp['e']
@@ -299,38 +311,13 @@ def main():
     radiusApi = radiusApi_class(pollingTime, displayClass)
 
     while True:
-    # for x in range(10):
-    # if 1: # once
-
         t1 = int(utime.ticks_ms()/1000)
-
         powerCostApi()
         radiusApi(powerCostApi.getCurrentPrices())
-
         t2 = int(utime.ticks_ms()/1000)
-
-        # tmp = t2-t1
-        # displayClass.writeXY("N {}".format(tmp), 1, 1, 1)
-        # displayClass.writeXY("X {}".format(x), 1, 1, 2)
-
         utime.sleep(max(pollingTime-(t2-t1), 0))
 
+    lcd.print("TheEnd")
 
-# For misc debug
-def main1():
-
-    screen = M5Screen()
-    screen.clean_screen()
-    screen.set_screen_bg_color(0x000000)
-    screen.set_screen_brightness(50)
-    lcd.font(lcd.FONT_DejaVu24)
-    lcd.print("Top:\n", 0, 0)
-
-    lcd.print(str(dir(screen)[10:]))
-    lcd.print('\n')
-
-    # lcd.writecommand(ILI9341_DISPOFF)
-    # lcd.setBrightness(0)
-
-
+    
 main()
